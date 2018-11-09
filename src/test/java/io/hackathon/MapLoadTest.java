@@ -1,5 +1,7 @@
 package io.hackathon;
 
+import io.hackathon.manager.impl.PathManager;
+import io.hackathon.model.Path;
 import io.hackathon.storage.impl.DeviceStorage;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -35,6 +37,9 @@ public class MapLoadTest extends Assert {
     @Autowired
     private DeviceStorage deviceStorage;
 
+    @Autowired
+    private PathManager pathManager;
+
     private int i;
 
     public MapLoadTest(int i) {
@@ -52,5 +57,7 @@ public class MapLoadTest extends Assert {
     public void test() {
         List<String> strings = deviceStorage.loadDefaultMap();
         assertTrue(strings.isEmpty());
+        Path path = pathManager.findPath("7_224_1", 7, 219);
+        assertNotNull(path);
     }
 }

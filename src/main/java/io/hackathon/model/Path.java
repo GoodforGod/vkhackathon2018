@@ -14,18 +14,24 @@ import java.util.Objects;
  */
 public class Path {
 
-    public static Path EMPTY = new Path("0", 0, Collections.emptyList(), "0_0_0");
+    public static Path EMPTY = new Path(0, Collections.emptyList(), "0_0_0");
 
     private String pathId;
     private int length;
     private List<String> devices;
     private String destDevice;
 
-    public Path(String pathId, int length, List<String> devices, String destDevice) {
-        this.pathId = pathId;
+    public Path(int length, List<String> devices, String destDevice) {
+        this.pathId = (CollectionUtils.isEmpty(devices)) ? "" : calcId(devices.get(0), destDevice);
         this.length = length;
         this.devices = (CollectionUtils.isEmpty(devices)) ? Collections.emptyList() : devices;
         this.destDevice = destDevice;
+    }
+
+    private static String calcId(String start, String dest) {
+        String[] splitStart = start.split("_");
+        String[] splitDest = dest.split("_");
+        return splitStart[0] + splitStart[1] + "_" + splitDest[0] + splitDest[1];
     }
 
     public boolean isEmpty() {

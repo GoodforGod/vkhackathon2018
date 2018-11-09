@@ -87,6 +87,19 @@ public class Device {
         this.isAlive = true;
     }
 
+
+    public int getZoneId() {
+        return detailedId.getZoneId();
+    }
+
+    public int getRoomId() {
+        return detailedId.getRoomId();
+    }
+
+    public int getDeviceId() {
+        return detailedId.getDeviceId();
+    }
+
     public Map<String, Integer> getEdges() {
         return edges;
     }

@@ -22,9 +22,20 @@ import java.util.*;
 @Service
 public class DeviceStorage extends BasicCacheStorage<Device, String> {
 
+    private final DeviceRepository deviceRepository;
+
     @Autowired
     public DeviceStorage(DeviceRepository repository) {
         super(repository);
+        this.deviceRepository = repository;
+    }
+
+    public List<Device> findByZone(int zoneId) {
+        return deviceRepository.findByDetailedIdZoneId(zoneId);
+    }
+
+    public List<Device> findByZoneAndRoom(int zoneId, int roomId) {
+        return deviceRepository.findByDetailedIdZoneIdAndDetailedIdRoomId(zoneId, roomId);
     }
 
     public List<String> loadDefaultMap() {
