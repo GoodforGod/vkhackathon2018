@@ -22,9 +22,15 @@ public class PathManager {
     @Autowired
     private DeviceStorage storage;
 
+    private final Map<String, Path> memorizedPaths = new HashMap<>();
+
     private final Comparator<Path> pathComparator = Comparator.comparingInt(p -> p.getDevices().size());
 
     public Path findPath(String startDeviceId, int zoneId, int roomId) {
+        return findPath(startDeviceId, zoneId, roomId, Collections.emptySet());
+    }
+
+    public Path findPath(String startDeviceId, int zoneId, int roomId, Set<String> exclude) {
         final Device startDevice = storage.find(startDeviceId).orElse(null);
         if (startDevice == null)
             throw new PathException("Start device id doesn't exist.");
@@ -34,20 +40,45 @@ public class PathManager {
         if (destDevices.isEmpty())
             throw new PathException("Destination room doesn't exist.");
 
+        final Path memorizedPath = startDevices.stream()
+                .map(startDev -> destDevices.stream()
+                        .map(destDev -> Path.calcFirstId(startDev.getId(), destDev.getId()))
+                        .collect(Collectors.toList()))
+                .flatMap(List::stream)
+                .map(id -> memorizedPaths.entrySet().stream()
+                        .filter(e -> e.getKey().startsWith(id))
+                        .map(Map.Entry::getValue)
+                        .collect(Collectors.toList()))
+                .flatMap(List::stream)
+                .filter(e -> !e.isEmpty())
+                .findAny()
+                .orElse(null);
+
+        // Path already memorized
+        if (memorizedPath != null && exclude.isEmpty())
+            return memorizedPath;
+
         final Map<Device, Path> paths = new HashMap<>();
         for (Device device : startDevices) {
-            Path path = findShortestPath(device, destDevices);
+            final Path path = findShortestPath(device, destDevices, exclude);
             paths.put(device, path);
         }
 
-        return paths.entrySet().stream()
+        final Path path = paths.entrySet().stream()
                 .filter(p -> !p.getValue().isEmpty())
                 .map(Map.Entry::getValue)
                 .min(pathComparator)
                 .orElse(Path.EMPTY);
+
+        if (!path.isEmpty())
+            this.memorizedPaths.put(path.getPathId(), path);
+
+        return path;
     }
 
-    private Path findShortestPath(Device startDevice, Set<Device> destinationDevices) {
+    private Path findShortestPath(Device startDevice,
+                                  Set<Device> destinationDevices,
+                                  Set<String> exclude) {
         final List<Device> all = storage.findAll();
 
         final Map<String, List<String>> shortPathMap = new HashMap<>();
@@ -59,7 +90,7 @@ public class PathManager {
         edgyMap.put(startDevice, 0);
 
         while (!unsettledDevices.isEmpty()) {
-            final Device device = getLowestDistanceNode(unsettledDevices, edgyMap);
+            final Device device = getLowestDistanceNode(unsettledDevices, edgyMap, exclude);
             unsettledDevices.remove(device);
             for (Map.Entry<String, Integer> entry : device.getEdges().entrySet()) {
                 storage.find(entry.getKey()).ifPresent(d -> {
@@ -92,9 +123,11 @@ public class PathManager {
     }
 
     private static Device getLowestDistanceNode(Set<Device> unsettledDevices,
-                                                Map<Device, Integer> edgyMap) {
+                                                Map<Device, Integer> edgyMap,
+                                                Set<String> exclude) {
         return edgyMap.entrySet().stream()
                 .filter(e -> unsettledDevices.contains(e.getKey()))
+                .filter(e -> !exclude.contains(e.getKey().getId()))
                 // Filter for alive or other devs
                 .min(Comparator.comparing(Map.Entry::getValue))
                 .map(Map.Entry::getKey)

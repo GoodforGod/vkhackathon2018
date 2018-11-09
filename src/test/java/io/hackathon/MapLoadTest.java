@@ -1,6 +1,8 @@
 package io.hackathon;
 
+import io.hackathon.manager.impl.ColorManager;
 import io.hackathon.manager.impl.PathManager;
+import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
 import io.hackathon.storage.impl.DeviceStorage;
 import org.junit.Assert;
@@ -14,9 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.rules.SpringClassRule;
 import org.springframework.test.context.junit4.rules.SpringMethodRule;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * "default comment"
@@ -40,6 +40,9 @@ public class MapLoadTest extends Assert {
     @Autowired
     private PathManager pathManager;
 
+    @Autowired
+    private ColorManager colorManager;
+
     private int i;
 
     public MapLoadTest(int i) {
@@ -54,10 +57,44 @@ public class MapLoadTest extends Assert {
     }
 
     @Test
-    public void test() {
+    public void testMapLoad() {
         List<String> strings = deviceStorage.loadDefaultMap();
         assertTrue(strings.isEmpty());
+        assertFalse(deviceStorage.findAll().isEmpty());
+    }
+
+    @Test
+    public void test() {
         Path path = pathManager.findPath("7_224_1", 7, 219);
         assertNotNull(path);
+        assertFalse(path.isEmpty());
+        ColorResponse assign = colorManager.assign(path);
+
+        Path pathSame = pathManager.findPath("7_224_1", 7, 219);
+        assertNotNull(pathSame);
+        assertFalse(pathSame.isEmpty());
+        ColorResponse assignedSame = colorManager.assign(path);
+
+        assertEquals(assign.getColor(), assignedSame.getColor());
+    }
+
+    @Test
+    public void testRoomOccupied() {
+        Path path = pathManager.findPath("7_224_1", 7, 219);
+        assertNotNull(path);
+        assertFalse(path.isEmpty());
+        ColorResponse assign = colorManager.assign(path);
+
+        Set<String> occupied = new HashSet<>();
+        occupied.add("7_220_1");
+        occupied.add("7_220_2");
+        Path pathDiff = pathManager.findPath("7_224_1", 7, 219, occupied);
+        assertNotNull(pathDiff);
+        assertFalse(pathDiff.isEmpty());
+        ColorResponse assignedDiff = colorManager.assign(path);
+
+        assertNotEquals(path.getDevices().size(), pathDiff.getDevices().size());
+        assertNotEquals(path.getDevices().size(), pathDiff.getDevices().size());
+        assertNotEquals(assign.getColor(), assignedDiff.getColor());
     }
 }

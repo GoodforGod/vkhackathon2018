@@ -5,6 +5,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * "default comment"
@@ -22,16 +23,22 @@ public class Path {
     private String destDevice;
 
     public Path(int length, List<String> devices, String destDevice) {
-        this.pathId = (CollectionUtils.isEmpty(devices)) ? "" : calcId(devices.get(0), destDevice);
+        this.pathId = (CollectionUtils.isEmpty(devices)) ? "" : calcId(devices, destDevice);
         this.length = length;
         this.devices = (CollectionUtils.isEmpty(devices)) ? Collections.emptyList() : devices;
         this.destDevice = destDevice;
     }
 
-    private static String calcId(String start, String dest) {
-        String[] splitStart = start.split("_");
+    public static String calcFirstId(String startDev, String dest) {
+        String[] splitStart = startDev.split("_");
         String[] splitDest = dest.split("_");
         return splitStart[0] + splitStart[1] + "_" + splitDest[0] + splitDest[1];
+    }
+
+    private static String calcId(List<String> devices, String dest) {
+        String firstIdPart = calcFirstId(devices.get(0), dest);
+        int pathHash = devices.stream().collect(Collectors.joining()).hashCode();
+        return firstIdPart + "_" + pathHash;
     }
 
     public boolean isEmpty() {
