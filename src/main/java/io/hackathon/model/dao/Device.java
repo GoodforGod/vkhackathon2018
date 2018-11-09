@@ -21,6 +21,8 @@ public class Device {
     @NotNull
     private DeviceId detailedId;
 
+    private String lastKnownIp;
+
     private boolean isEdgy;
     private boolean isAlive;
 
@@ -71,6 +73,10 @@ public class Device {
         return detailedId;
     }
 
+    public void rememberIp(String ip) {
+        this.lastKnownIp = ip;
+    }
+
     public boolean isEdgy() {
         return isEdgy;
     }
@@ -87,6 +93,9 @@ public class Device {
         this.isAlive = true;
     }
 
+    public String getLastKnownIp() {
+        return lastKnownIp;
+    }
 
     public int getZoneId() {
         return detailedId.getZoneId();

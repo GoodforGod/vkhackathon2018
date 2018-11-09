@@ -25,7 +25,7 @@ public enum Color {
         this.rgb = rgb;
     }
 
-    public String getRgb() {
+    public String asRgb() {
         return rgb;
     }
 

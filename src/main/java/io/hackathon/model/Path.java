@@ -1,5 +1,6 @@
 package io.hackathon.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
@@ -41,6 +42,7 @@ public class Path {
         return firstIdPart + "_" + pathHash;
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return devices.isEmpty();
     }
