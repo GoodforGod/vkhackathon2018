@@ -20,4 +20,5 @@ public interface IStorage<T, ID extends Serializable> {
 
     T delete(T t);
     void delete(ID id);
+    void deleteAll();
 }

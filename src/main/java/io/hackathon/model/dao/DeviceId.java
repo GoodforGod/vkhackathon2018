@@ -14,10 +14,16 @@ public class DeviceId {
     private int roomId;
     private int deviceId;
 
+    public DeviceId() { }
+
     public DeviceId(int zoneId, int roomId, int deviceId) {
         this.zoneId = zoneId;
         this.roomId = roomId;
         this.deviceId = deviceId;
+    }
+
+    public String getFullId() {
+        return zoneId + "_" + roomId + "_" + deviceId;
     }
 
     public int getZoneId() {

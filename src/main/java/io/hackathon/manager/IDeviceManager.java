@@ -1,4 +1,4 @@
-package io.hackathon.model;
+package io.hackathon.manager;
 
 /**
  * "default comment"
@@ -6,6 +6,6 @@ package io.hackathon.model;
  * @author GoodforGod
  * @since 09.11.2018
  */
-public class MapGraph {
+public interface IDeviceManager {
 
 }

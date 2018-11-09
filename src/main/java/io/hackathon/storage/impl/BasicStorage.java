@@ -1,6 +1,8 @@
 package io.hackathon.storage.impl;
 
 import io.hackathon.storage.IStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.io.Serializable;
@@ -14,6 +16,8 @@ import java.util.Optional;
  * @since 09.11.2018
  */
 abstract class BasicStorage<T, ID extends Serializable> implements IStorage<T, ID> {
+
+    final Logger logger = LoggerFactory.getLogger(BasicStorage.class);
 
     final MongoRepository<T, ID> repository;
 
@@ -50,5 +54,10 @@ abstract class BasicStorage<T, ID extends Serializable> implements IStorage<T, I
     @Override
     public void delete(ID id) {
         repository.deleteById(id);
+    }
+
+    @Override
+    public void deleteAll() {
+        repository.deleteAll();
     }
 }
