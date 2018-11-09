@@ -1,13 +1,14 @@
 package io.hackathon;
 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 /**
  * Hello world!
- *
  */
-public class AppStarter
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
+@SpringBootApplication
+public class AppStarter {
+    public static void main(String[] args) {
+        SpringApplication.run(AppStarter.class, args);
     }
 }
