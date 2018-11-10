@@ -7,9 +7,14 @@ import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
 import io.hackathon.model.dao.Device;
 import io.hackathon.model.dto.PathTO;
-import io.hackathon.service.impl.NotifyService;
+import io.hackathon.service.impl.NotifyUdpService;
 import io.hackathon.storage.impl.DeviceStorage;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,19 +43,24 @@ public class PathController {
     private ColorManager colorManager;
 
     @Autowired
-    private NotifyService notifyService;
+    private NotifyUdpService notifyUdpService;
 
     @Autowired
     private DeviceStorage deviceStorage;
 
+    private final Logger logger = LoggerFactory.getLogger(PathController.class);
+
     private final ForkJoinPool pool = ForkJoinPool.commonPool();
 
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Successful path", response = PathTO.class)
+    })
     @GetMapping("/path/calc")
     public DeferredResult<ResponseEntity<PathTO>> calcPath(
             @RequestParam("startDeviceId") String startDeviceId,
             @RequestParam("destZoneId") int destZoneId,
             @RequestParam("destRoomId") int destRoomId) {
-        final DeferredResult<ResponseEntity<PathTO>> response = new DeferredResult<>();
+        final DeferredResult<ResponseEntity<PathTO>> response = new DeferredResult<>(1500L);
         pool.submit(() -> {
             Set<String> excluded = Collections.emptySet();
             while (true) {
@@ -68,7 +78,10 @@ public class PathController {
                             path.getDestDevice());
 
                     final List<Device> devices = deviceStorage.findByIds(path.getDevices());
-                    notifyService.notifyWithColor(devices, path.getPathId(), colorResponse.getColor());
+
+                    notifyUdpService.notifyWithColor(devices, path.getPathId(), colorResponse.getColor());
+
+                    logger.warn("PATH FOUND - " + pathResponse.getPathId());
                     response.setResult(ResponseEntity.ok(pathResponse));
                     break;
                 }
@@ -76,6 +89,11 @@ public class PathController {
                 excluded = new HashSet<>(colorResponse.getDevices());
             }
         });
+
+        response.onTimeout(() ->
+                response.setErrorResult(
+                        ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT)
+                                .body("Request timeout occurred.")));
 
         return response;
     }
@@ -88,7 +106,7 @@ public class PathController {
 
         final List<Device> devices = deviceStorage.findByIds(path.getDevices());
         colorManager.reset(path.getPathId(), new HashSet<>(path.getDevices()));
-        notifyService.notifyColorOff(devices, path.getPathId());
+        notifyUdpService.notifyColorOff(devices, path.getPathId());
         return true;
     }
 }

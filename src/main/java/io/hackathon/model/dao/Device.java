@@ -33,7 +33,8 @@ public class Device {
 
     private List<Cut> cuts = new ArrayList<>();
 
-    public Device() { }
+    public Device() {
+    }
 
     public Device(int zoneId, int roomId, int deviceId) {
         this.detailedId = new DeviceId(zoneId, roomId, deviceId);
@@ -89,6 +90,10 @@ public class Device {
         return isAlive;
     }
 
+    public void maskAsDead() {
+        this.isAlive = false;
+    }
+
     public void markAsAlive() {
         this.isAlive = true;
     }
@@ -127,7 +132,19 @@ public class Device {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(detailedId);
+    }
+
+    @Override
+    public String toString() {
+        return "Device{" +
+                "id='" + id + '\'' +
+                ", detailedId=" + detailedId +
+                ", lastKnownIp='" + lastKnownIp + '\'' +
+                ", isEdgy=" + isEdgy +
+                ", isAlive=" + isAlive +
+                ", edges=" + edges +
+                ", cuts=" + cuts +
+                '}';
     }
 }

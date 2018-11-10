@@ -2,8 +2,9 @@ package io.hackathon.manager.impl;
 
 import io.hackathon.model.dao.Device;
 import io.hackathon.storage.impl.DeviceStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -17,21 +18,33 @@ import java.util.Optional;
 @Service
 public class DeviceManager {
 
+    private final Logger logger = LoggerFactory.getLogger(DeviceManager.class);
+
     @Autowired
     private DeviceStorage storage;
 
-    public boolean alive(String deviceId) {
+    public boolean dead(String deviceId) {
         Optional<Device> device = storage.find(deviceId);
         device.ifPresent(d -> {
-            d.markAsAlive();
+            d.maskAsDead();
+            logger.warn("DEVICE IS DEAD - " + d.getId());
             storage.save(d);
         });
 
         return device.isPresent();
     }
 
-    @Scheduled(cron = "0 0 */1 * * *")
-    public void resetAliveState() {
-        //
+    public boolean alive(String deviceId, String ipAddress) {
+        Optional<Device> device = storage.find(deviceId);
+        device.ifPresent(d -> {
+            d.markAsAlive();
+            d.rememberIp(ipAddress);
+            logger.warn("DEVICE IS ALIVE - " + d.getId() + ", WITH IP - " + ipAddress);
+            storage.save(d);
+        });
+
+        logger.warn("DEVICE NOT FOUND, CANT MARK ALIVE - " + deviceId + ", WITH IP - " + ipAddress);
+
+        return device.isPresent();
     }
 }

@@ -13,7 +13,7 @@ import java.util.List;
 public class PathTO {
 
     private boolean isOptimal;
-    private Color color;
+    private String color;
 
     private String pathId;
     private int length;
@@ -22,7 +22,7 @@ public class PathTO {
 
     public PathTO(boolean isOptimal, Color color, String pathId, int length, List<String> devices, String destDevice) {
         this.isOptimal = isOptimal;
-        this.color = color;
+        this.color = color.asRgb();
         this.pathId = pathId;
         this.length = length;
         this.devices = devices;
@@ -33,7 +33,7 @@ public class PathTO {
         return isOptimal;
     }
 
-    public Color getColor() {
+    public String getColor() {
         return color;
     }
 
@@ -51,5 +51,17 @@ public class PathTO {
 
     public String getDestDevice() {
         return destDevice;
+    }
+
+    @Override
+    public String toString() {
+        return "PathTO{" +
+                "isOptimal=" + isOptimal +
+                ", color='" + color + '\'' +
+                ", pathId='" + pathId + '\'' +
+                ", length=" + length +
+                ", devices=" + devices +
+                ", destDevice='" + destDevice + '\'' +
+                '}';
     }
 }

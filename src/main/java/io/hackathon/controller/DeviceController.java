@@ -1,7 +1,6 @@
 package io.hackathon.controller;
 
-import io.hackathon.manager.impl.DeviceManager;
-import io.hackathon.storage.impl.DeviceStorage;
+import io.hackathon.manager.impl.NotifyHttpManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,21 +18,10 @@ import javax.servlet.http.HttpServletRequest;
 public class DeviceController {
 
     @Autowired
-    private DeviceManager deviceManager;
-
-    @Autowired
-    private DeviceStorage deviceStorage;
+    private NotifyHttpManager notifyManager;
 
     @GetMapping("/device/alive/{id}")
-    public boolean pingAlive(@PathVariable("id") String deviceId, HttpServletRequest request) {
-        boolean alive = deviceManager.alive(deviceId);
-        if(alive) {
-            deviceStorage.find(deviceId).ifPresent(d -> {
-                d.rememberIp(request.getRemoteAddr());
-                deviceStorage.save(d);
-            });
-        }
-
-        return alive;
+    public String pingAlive(@PathVariable("id") String deviceId, HttpServletRequest request) {
+        return notifyManager.getResponse(deviceId, request.getRemoteAddr());
     }
 }

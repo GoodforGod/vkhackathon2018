@@ -25,7 +25,7 @@ public class DeviceStorage extends BasicCacheStorage<Device, String> {
 
     private final DeviceRepository deviceRepository;
 
-    @Value("${map.path:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\map_small.json}")
+    @Value("${MAP_PATH:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\map_small.json}")
     private String defaultMapPath;
 
     @Autowired

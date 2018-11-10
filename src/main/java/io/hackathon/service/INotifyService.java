@@ -1,5 +1,10 @@
 package io.hackathon.service;
 
+import io.hackathon.model.Color;
+import io.hackathon.model.dao.Device;
+
+import java.util.List;
+
 /**
  * "default comment"
  *
@@ -8,4 +13,10 @@ package io.hackathon.service;
  */
 public interface INotifyService {
 
+    void notifyWithColor(final List<Device> devices,
+                         final String pathId,
+                         final Color color);
+
+    void notifyColorOff(final List<Device> devices,
+                        final String pathId);
 }

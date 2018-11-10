@@ -1,21 +1,6 @@
 server:
-  port: 8080
+  port: 44093
 spring:
-  profiles:
-    active: local
   data:
     mongodb:
       database: hermitage
-
----
-
-spring:
-  profiles: prod
-  data:
-    mongodb:
-      database: hermitage
-      port: 34093
-server:
-  port: 8080
-logging:
-  level: warn

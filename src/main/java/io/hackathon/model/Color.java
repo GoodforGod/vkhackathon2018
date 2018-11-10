@@ -11,13 +11,12 @@ import java.util.stream.Collectors;
  * @since 09.11.2018
  */
 public enum Color {
-    RED(""),
-    ORANGE(""),
-    YELLOW(""),
-    GREEN(""),
-    CYEN(""),
-    BLUE(""),
-    PURPLE("");
+    RED("1 0 0"),
+    GREEN("0 1 0"),
+    BLUE("0 0 1"),
+    PURPLE("1 0 1"),
+    YELLOW("1 1 0"),
+    CYAN("0 1 1");
 
     private final String rgb;
 

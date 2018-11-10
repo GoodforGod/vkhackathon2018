@@ -30,7 +30,7 @@ public class MapController {
     @Autowired
     private DeviceStorage storage;
 
-    @Value("${img.path:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\images\\map.jpg}")
+    @Value("${IMG_PATH:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\images\\map.jpg}")
     private String imgPath;
 
     @GetMapping(value = "/map/pic")

@@ -4,6 +4,8 @@ import io.hackathon.model.Color;
 import io.hackathon.model.ColorBox;
 import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ColorManager {
+
+    private final Logger logger = LoggerFactory.getLogger(ColorManager.class);
 
     private final Map<String, ColorBox> colorBoxMap = new ConcurrentHashMap<>();
 
@@ -66,6 +70,9 @@ public class ColorManager {
     public void reset(String pathId, Set<String> devices) {
         this.colorBoxMap.entrySet().stream()
                 .filter(e -> devices.contains(e.getKey()))
-                .forEach(e -> e.getValue().reset(pathId));
+                .forEach(e -> {
+                    logger.warn("RESET COLOR FOR PATH - " + pathId);
+                    e.getValue().reset(pathId);
+                });
     }
 }

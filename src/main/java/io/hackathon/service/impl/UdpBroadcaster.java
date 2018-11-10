@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.*;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +21,7 @@ import java.util.stream.Collectors;
 @Service
 public class UdpBroadcaster {
 
-    @Value("${device.udp.port:52313}")
+    @Value("${DEVICE_UDP_PORT:52313}")
     private int PORT;
 
     private final Logger logger = LoggerFactory.getLogger(UdpBroadcaster.class);
@@ -40,17 +39,24 @@ public class UdpBroadcaster {
             final DatagramSocket socket = new DatagramSocket();
             socket.setBroadcast(true);
 
+            logger.warn("POTENTIAL MSG TO SEND - " + message);
             final List<String> sendedToDevices = ips.stream()
                     .map(this::toAddress)
-                    .filter(Objects::nonNull)
+                    .filter(a -> a != null && !a.getHostAddress().isEmpty())
                     .peek(addr -> send(socket, message, addr))
                     .map(InetAddress::getHostAddress)
                     .collect(Collectors.toList());
 
+            if(sendedToDevices.isEmpty()) {
+                logger.warn("NO DEVICES WITH KNOWN IPs");
+                return sendedToDevices;
+            }
+
+            logger.warn("BROADCASTING TO IPs - " + sendedToDevices.toString());
             socket.close();
             return sendedToDevices;
         } catch (SocketException e) {
-            logger.error(e.getLocalizedMessage());
+            logger.error("SOCKET ERROR - " + e.getLocalizedMessage());
             return Collections.emptyList();
         }
     }
@@ -59,11 +65,15 @@ public class UdpBroadcaster {
                       final String broadcastMessage,
                       final InetAddress address) {
         try {
+            if (address == null || address.getHostAddress().isEmpty())
+                return;
+
             byte[] buffer = broadcastMessage.getBytes();
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, PORT);
             socket.send(packet);
         } catch (IOException e) {
-            logger.error(e.getLocalizedMessage());
+            logger.error("SEND ERROR WITH " + e.getLocalizedMessage());
+            logger.error("SEND ERROR ID - " + broadcastMessage + " FOR IP " + address);
         }
     }
 
@@ -73,9 +83,11 @@ public class UdpBroadcaster {
 
     private InetAddress toAddress(String ip) {
         try {
-            return InetAddress.getByName(ip);
+            return (ip == null || ip.isEmpty())
+                    ? null
+                    : InetAddress.getByName(ip);
         } catch (UnknownHostException e) {
-            logger.warn(e.getLocalizedMessage());
+            logger.warn("INVALID ADDRESS - " + e.getLocalizedMessage());
             return null;
         }
     }

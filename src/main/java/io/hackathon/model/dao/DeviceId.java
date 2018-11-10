@@ -14,7 +14,8 @@ public class DeviceId {
     private int roomId;
     private int deviceId;
 
-    public DeviceId() { }
+    public DeviceId() {
+    }
 
     public DeviceId(int zoneId, int roomId, int deviceId) {
         this.zoneId = zoneId;
@@ -50,7 +51,15 @@ public class DeviceId {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(zoneId, roomId, deviceId);
+    }
+
+    @Override
+    public String toString() {
+        return "DeviceId{" +
+                "zoneId=" + zoneId +
+                ", roomId=" + roomId +
+                ", deviceId=" + deviceId +
+                '}';
     }
 }

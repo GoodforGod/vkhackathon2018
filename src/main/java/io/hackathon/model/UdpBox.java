@@ -38,7 +38,14 @@ public class UdpBox {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(msg, timestamp);
+    }
+
+    @Override
+    public String toString() {
+        return "UdpBox{" +
+                "msg='" + msg + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }
