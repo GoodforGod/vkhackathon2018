@@ -6,6 +6,7 @@ import io.hackathon.model.dto.DevicePaths;
 import io.hackathon.model.dto.MapGraph;
 import io.hackathon.repository.DeviceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -23,6 +24,9 @@ import java.util.stream.Collectors;
 public class DeviceStorage extends BasicCacheStorage<Device, String> {
 
     private final DeviceRepository deviceRepository;
+
+    @Value("${map.path:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\map_small.json}")
+    private String defaultMapPath;
 
     @Autowired
     public DeviceStorage(DeviceRepository repository) {
@@ -48,8 +52,7 @@ public class DeviceStorage extends BasicCacheStorage<Device, String> {
 
     public List<String> loadDefaultMap() {
         try {
-            final ClassLoader classLoader = getClass().getClassLoader();
-            final File file = new File(Objects.requireNonNull(classLoader.getResource("/map_small.json")).getFile());
+            final File file = new File(defaultMapPath);
             final MapGraph marked = new ObjectMapper().readValue(file, MapGraph.class);
             deleteAll();
             return loadMap(marked);

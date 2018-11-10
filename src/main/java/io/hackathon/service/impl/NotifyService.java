@@ -39,7 +39,7 @@ public class NotifyService {
     private final Logger logger = LoggerFactory.getLogger(NotifyService.class);
 
     @Value("${server.udp.port:45050}")
-    private int serverPort;
+    private int serverListenerPort;
 
     private enum Command {
         ALIVE('A'),
@@ -118,7 +118,7 @@ public class NotifyService {
         return () -> {
             try {
                 final byte[] buf = new byte[256];
-                try (DatagramSocket socket = new DatagramSocket(serverPort)) {
+                try (DatagramSocket socket = new DatagramSocket(serverListenerPort)) {
                     while (isActive.get()) {
                         final DatagramPacket packet = new DatagramPacket(buf, buf.length);
                         socket.receive(packet);

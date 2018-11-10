@@ -91,7 +91,7 @@ public class MapLoadTest extends Assert {
         Path pathDiff = pathManager.findPath("7_224_1", 7, 219, occupied);
         assertNotNull(pathDiff);
         assertFalse(pathDiff.isEmpty());
-        ColorResponse assignedDiff = colorManager.assign(path);
+        ColorResponse assignedDiff = colorManager.assign(pathDiff);
 
         assertNotEquals(path.getDevices().size(), pathDiff.getDevices().size());
         assertNotEquals(path.getDevices().size(), pathDiff.getDevices().size());

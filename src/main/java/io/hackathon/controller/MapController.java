@@ -6,10 +6,12 @@ import io.hackathon.model.dto.MapGraph;
 import io.hackathon.storage.impl.DeviceStorage;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import springfox.documentation.annotations.ApiIgnore;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,10 +30,13 @@ public class MapController {
     @Autowired
     private DeviceStorage storage;
 
+    @Value("${img.path:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\images\\map.jpg}")
+    private String imgPath;
+
     @GetMapping(value = "/map/pic")
     public String getMapPic() {
         try {
-            final byte[] fileContent = FileUtils.readFileToByteArray(new File("/images/map.jpg"));
+            final byte[] fileContent = FileUtils.readFileToByteArray(new File(imgPath));
             final String encodedImg = Base64.getEncoder().encodeToString(fileContent);
             return encodedImg;
         } catch (IOException e) {
@@ -48,6 +53,7 @@ public class MapController {
         return true;
     }
 
+    @ApiIgnore
     @GetMapping(value = "/map/default")
     public boolean loadDefaultMap() {
         List<String> invalidDevices = storage.loadDefaultMap();
