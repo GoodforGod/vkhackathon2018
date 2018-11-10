@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -22,9 +23,14 @@ public class PathManager {
     @Autowired
     private DeviceStorage storage;
 
-    private final Map<String, Path> memorizedPaths = new HashMap<>();
+    private final Map<String, Path> memorizedOptimalPaths = new ConcurrentHashMap<>();
+    private final Map<String, Path> memorizedPaths = new ConcurrentHashMap<>();
 
     private final Comparator<Path> pathComparator = Comparator.comparingInt(p -> p.getDevices().size());
+
+    public Path memorized(String pathId) {
+        return memorizedOptimalPaths.getOrDefault(pathId, memorizedPaths.get(pathId));
+    }
 
     public Path findPath(String startDeviceId, int zoneId, int roomId) {
         return findPath(startDeviceId, zoneId, roomId, Collections.emptySet());
@@ -45,7 +51,7 @@ public class PathManager {
                         .map(destDev -> Path.calcFirstId(startDev.getId(), destDev.getId()))
                         .collect(Collectors.toList()))
                 .flatMap(List::stream)
-                .map(id -> memorizedPaths.entrySet().stream()
+                .map(id -> memorizedOptimalPaths.entrySet().stream()
                         .filter(e -> e.getKey().startsWith(id))
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList()))
@@ -70,8 +76,13 @@ public class PathManager {
                 .min(pathComparator)
                 .orElse(Path.EMPTY);
 
-        if (!path.isEmpty())
-            this.memorizedPaths.put(path.getPathId(), path);
+        if (!path.isEmpty()) {
+            if (path.isOptimal()) {
+                this.memorizedOptimalPaths.put(path.getPathId(), path);
+            } else {
+                this.memorizedPaths.put(path.getPathId(), path);
+            }
+        }
 
         return path;
     }
@@ -119,7 +130,7 @@ public class PathManager {
                 .map(Map.Entry::getValue)
                 .findAny().orElse(0);
 
-        return new Path(pathLength, path.getValue(), path.getKey());
+        return new Path(pathLength, path.getValue(), path.getKey(), exclude.isEmpty());
     }
 
     private static Device getLowestDistanceNode(Set<Device> unsettledDevices,

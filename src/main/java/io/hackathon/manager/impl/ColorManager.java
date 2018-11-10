@@ -6,7 +6,11 @@ import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -18,7 +22,7 @@ import java.util.stream.Collectors;
 @Service
 public class ColorManager {
 
-    private final Map<String, ColorBox> colorBoxMap = new HashMap<>();
+    private final Map<String, ColorBox> colorBoxMap = new ConcurrentHashMap<>();
 
     public ColorResponse assign(final Path path) {
         final Set<String> devices = new HashSet<>(path.getDevices());

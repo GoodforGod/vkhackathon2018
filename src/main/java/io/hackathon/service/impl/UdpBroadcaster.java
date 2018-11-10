@@ -3,6 +3,7 @@ package io.hackathon.service.impl;
 import io.hackathon.model.dao.Device;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -21,16 +22,25 @@ import java.util.stream.Collectors;
 @Service
 public class UdpBroadcaster {
 
-    private static final int PORT = 52313;
+    @Value("${device.udp.port:52313}")
+    private int PORT;
 
     private final Logger logger = LoggerFactory.getLogger(UdpBroadcaster.class);
 
-    public List<String> broadcast(final List<Device> devices, String message) {
+    public List<String> broadcastToDevices(final List<Device> devices, String message) {
+        final List<String> addresses = devices.stream()
+                .map(Device::getLastKnownIp)
+                .collect(Collectors.toList());
+
+        return broadcast(addresses, message);
+    }
+
+    public List<String> broadcast(final List<String> ips, String message) {
         try {
             final DatagramSocket socket = new DatagramSocket();
             socket.setBroadcast(true);
 
-            final List<String> sendedToDevices = devices.stream()
+            final List<String> sendedToDevices = ips.stream()
                     .map(this::toAddress)
                     .filter(Objects::nonNull)
                     .peek(addr -> send(socket, message, addr))
@@ -58,8 +68,12 @@ public class UdpBroadcaster {
     }
 
     private InetAddress toAddress(Device device) {
+        return toAddress(device.getLastKnownIp());
+    }
+
+    private InetAddress toAddress(String ip) {
         try {
-            return InetAddress.getByName(device.getLastKnownIp());
+            return InetAddress.getByName(ip);
         } catch (UnknownHostException e) {
             logger.warn(e.getLocalizedMessage());
             return null;

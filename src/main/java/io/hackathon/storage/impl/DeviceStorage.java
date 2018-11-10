@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * "default comment"
@@ -30,6 +30,14 @@ public class DeviceStorage extends BasicCacheStorage<Device, String> {
         this.deviceRepository = repository;
     }
 
+    public List<Device> findByIds(List<String> deviceIds) {
+        return deviceIds.stream()
+                .map(this::find)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+    }
+
     public List<Device> findByZone(int zoneId) {
         return deviceRepository.findByDetailedIdZoneId(zoneId);
     }
@@ -41,11 +49,11 @@ public class DeviceStorage extends BasicCacheStorage<Device, String> {
     public List<String> loadDefaultMap() {
         try {
             final ClassLoader classLoader = getClass().getClassLoader();
-            final File file = new File(Objects.requireNonNull(classLoader.getResource("map_small.json")).getFile());
+            final File file = new File(Objects.requireNonNull(classLoader.getResource("/map_small.json")).getFile());
             final MapGraph marked = new ObjectMapper().readValue(file, MapGraph.class);
             deleteAll();
             return loadMap(marked);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.warn(e.getLocalizedMessage());
             return Collections.emptyList();
         }
