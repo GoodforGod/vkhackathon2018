@@ -3,11 +3,13 @@ package io.hackathon.service.impl;
 import io.hackathon.model.dao.Device;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,71 +23,61 @@ import java.util.stream.Collectors;
 @Service
 public class UdpBroadcaster {
 
-    @Value("${DEVICE_UDP_PORT:52313}")
-    private int PORT;
-
     private final Logger logger = LoggerFactory.getLogger(UdpBroadcaster.class);
 
-    public List<String> broadcastToDevices(final List<Device> devices, String message) {
-        final List<String> addresses = devices.stream()
-                .map(Device::getLastKnownIp)
-                .collect(Collectors.toList());
-
-        return broadcast(addresses, message);
-    }
-
-    public List<String> broadcast(final List<String> ips, String message) {
+    public List<Device> broadcast(final List<Device> devices, String message) {
         try {
-            final DatagramSocket socket = new DatagramSocket();
-            socket.setBroadcast(true);
-
             logger.warn("POTENTIAL MSG TO SEND - " + message);
-            final List<String> sendedToDevices = ips.stream()
-                    .map(this::toAddress)
-                    .filter(a -> a != null && !a.getHostAddress().isEmpty())
-                    .peek(addr -> send(socket, message, addr))
-                    .map(InetAddress::getHostAddress)
+            final List<Device> sendedToDevices = devices.stream()
+                    .peek(dev -> send(message, dev.getLastKnownIp(), dev.getLastKnownPort()))
                     .collect(Collectors.toList());
 
-            if(sendedToDevices.isEmpty()) {
+            if (sendedToDevices.isEmpty()) {
                 logger.warn("NO DEVICES WITH KNOWN IPs");
                 return sendedToDevices;
             }
 
-            logger.warn("BROADCASTING TO IPs - " + sendedToDevices.toString());
-            socket.close();
+            logger.warn("BROADCAST TO IPs - " + sendedToDevices.toString());
             return sendedToDevices;
-        } catch (SocketException e) {
+        } catch (Exception e) {
             logger.error("SOCKET ERROR - " + e.getLocalizedMessage());
             return Collections.emptyList();
         }
     }
 
-    private void send(final DatagramSocket socket,
-                      final String broadcastMessage,
-                      final InetAddress address) {
+    private void send(final String broadcastMessage,
+                      final String ipAddress,
+                      final int port) {
         try {
-            if (address == null || address.getHostAddress().isEmpty())
+            final DatagramSocket socket = new DatagramSocket();
+            if(ipAddress == null || ipAddress.isEmpty())
                 return;
 
-            byte[] buffer = broadcastMessage.getBytes();
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, PORT);
+            final InetAddress inetAddress = toAddress(ipAddress);
+            socket.setBroadcast(true);
+            final byte[] buffer = broadcastMessage.getBytes();
+            final DatagramPacket packet = new DatagramPacket(buffer, buffer.length, inetAddress, port);
+            logger.warn(packet.getSocketAddress().toString());
             socket.send(packet);
+            socket.close();
         } catch (IOException e) {
             logger.error("SEND ERROR WITH " + e.getLocalizedMessage());
-            logger.error("SEND ERROR ID - " + broadcastMessage + " FOR IP " + address);
+            logger.error("SEND ERROR ID - " + broadcastMessage
+                    + " FOR IP " + ipAddress
+                    + ", port " + port);
         }
-    }
-
-    private InetAddress toAddress(Device device) {
-        return toAddress(device.getLastKnownIp());
     }
 
     private InetAddress toAddress(String ip) {
         try {
-            return (ip == null || ip.isEmpty())
+            InetAddress address = (ip == null || ip.isEmpty())
                     ? null
                     : InetAddress.getByName(ip);
+
+            if (address != null)
+                logger.warn("DEVICE ADDRESS BUILD " + address.getHostAddress());
+
+            return address;
         } catch (UnknownHostException e) {
             logger.warn("INVALID ADDRESS - " + e.getLocalizedMessage());
             return null;

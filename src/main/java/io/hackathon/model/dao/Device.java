@@ -22,6 +22,7 @@ public class Device {
     private DeviceId detailedId;
 
     private String lastKnownIp;
+    private int lastKnownPort;
 
     private boolean isEdgy;
     private boolean isAlive;
@@ -74,8 +75,9 @@ public class Device {
         return detailedId;
     }
 
-    public void rememberIp(String ip) {
+    public void rememberIp(String ip, int port) {
         this.lastKnownIp = ip;
+        this.lastKnownPort = port;
     }
 
     public boolean isEdgy() {
@@ -96,6 +98,10 @@ public class Device {
 
     public void markAsAlive() {
         this.isAlive = true;
+    }
+
+    public int getLastKnownPort() {
+        return lastKnownPort;
     }
 
     public String getLastKnownIp() {

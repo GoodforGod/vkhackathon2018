@@ -2,12 +2,12 @@ package io.hackathon.controller;
 
 import io.hackathon.error.PathCantCalcException;
 import io.hackathon.manager.impl.ColorManager;
+import io.hackathon.manager.impl.NotifyHttpManager;
 import io.hackathon.manager.impl.PathManager;
 import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
 import io.hackathon.model.dao.Device;
 import io.hackathon.model.dto.PathTO;
-import io.hackathon.service.impl.NotifyUdpService;
 import io.hackathon.storage.impl.DeviceStorage;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
@@ -43,14 +43,16 @@ public class PathController {
     private ColorManager colorManager;
 
     @Autowired
-    private NotifyUdpService notifyUdpService;
+    private DeviceStorage deviceStorage;
 
     @Autowired
-    private DeviceStorage deviceStorage;
+    private NotifyHttpManager notifyManager;
+
 
     private final Logger logger = LoggerFactory.getLogger(PathController.class);
 
     private final ForkJoinPool pool = ForkJoinPool.commonPool();
+
 
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successful path", response = PathTO.class)
@@ -79,7 +81,7 @@ public class PathController {
 
                     final List<Device> devices = deviceStorage.findByIds(path.getDevices());
 
-                    notifyUdpService.notifyWithColor(devices, path.getPathId(), colorResponse.getColor());
+                    notifyManager.notifyWithColor(devices, path.getPathId(), colorResponse.getColor());
 
                     logger.warn("PATH FOUND - " + pathResponse.getPathId());
                     response.setResult(ResponseEntity.ok(pathResponse));
@@ -106,7 +108,7 @@ public class PathController {
 
         final List<Device> devices = deviceStorage.findByIds(path.getDevices());
         colorManager.reset(path.getPathId(), new HashSet<>(path.getDevices()));
-        notifyUdpService.notifyColorOff(devices, path.getPathId());
+        notifyManager.notifyColorOff(devices, path.getPathId());
         return true;
     }
 }

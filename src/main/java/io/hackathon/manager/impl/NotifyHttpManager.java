@@ -27,12 +27,12 @@ public class NotifyHttpManager implements INotifyManager {
 
     private final Map<String, Queue<String>> responseMap = new ConcurrentHashMap<>();
 
-    public String getResponse(String deviceId, String ip) {
+    public String getResponse(String deviceId, String ip, int port) {
         final Queue<String> queue = responseMap.get(deviceId);
         if(queue == null || queue.isEmpty())
             return null;
 
-        deviceManager.alive(deviceId, ip);
+        deviceManager.alive(deviceId, ip, port);
         return queue.poll();
     }
 

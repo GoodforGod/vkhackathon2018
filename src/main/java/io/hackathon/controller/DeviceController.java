@@ -22,6 +22,6 @@ public class DeviceController {
 
     @GetMapping("/device/alive/{id}")
     public String pingAlive(@PathVariable("id") String deviceId, HttpServletRequest request) {
-        return notifyManager.getResponse(deviceId, request.getRemoteAddr());
+        return notifyManager.getResponse(deviceId, request.getRemoteAddr(), request.getRemotePort());
     }
 }

@@ -34,16 +34,17 @@ public class DeviceManager {
         return device.isPresent();
     }
 
-    public boolean alive(String deviceId, String ipAddress) {
+    public boolean alive(String deviceId, String ipAddress, int port) {
         Optional<Device> device = storage.find(deviceId);
         device.ifPresent(d -> {
             d.markAsAlive();
-            d.rememberIp(ipAddress);
-            logger.warn("DEVICE IS ALIVE - " + d.getId() + ", WITH IP - " + ipAddress);
+            d.rememberIp(ipAddress, port);
+            logger.warn("DEVICE IS ALIVE - " + d.getId() + ", WITH IP - " + ipAddress + ", WITH PORT - " + port);
             storage.save(d);
         });
 
-        logger.warn("DEVICE NOT FOUND, CANT MARK ALIVE - " + deviceId + ", WITH IP - " + ipAddress);
+        if (!device.isPresent())
+            logger.warn("DEVICE NOT FOUND, CANT MARK ALIVE - " + deviceId + ", WITH IP - " + ipAddress);
 
         return device.isPresent();
     }

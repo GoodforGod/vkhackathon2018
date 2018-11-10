@@ -10,5 +10,5 @@ import io.hackathon.service.INotifyService;
  */
 public interface INotifyManager extends INotifyService {
 
-    String getResponse(String deviceId, String ip);
+    String getResponse(String deviceId, String ip, int port);
 }
