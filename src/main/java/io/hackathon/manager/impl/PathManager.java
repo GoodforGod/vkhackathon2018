@@ -36,6 +36,19 @@ public class PathManager {
                 : box.getPath();
     }
 
+    public List<Path> memorized() {
+        final List<Path> pathsOptimal = memorizedOptimalPaths.entrySet().stream()
+                .map(e -> e.getValue().getPath())
+                .collect(Collectors.toList());
+
+        final List<Path> paths = memorizedPaths.entrySet().stream()
+                .map(e -> e.getValue().getPath())
+                .collect(Collectors.toList());
+
+        pathsOptimal.addAll(paths);
+        return pathsOptimal;
+    }
+
     public Path findPath(String startDeviceId, int zoneId, int roomId) {
         return findPath(startDeviceId, zoneId, roomId, Collections.emptySet());
     }
@@ -166,6 +179,4 @@ public class PathManager {
             shortPathMap.put(evaluationDevice.getId(), newPath);
         }
     }
-
-
 }

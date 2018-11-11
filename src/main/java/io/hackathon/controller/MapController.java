@@ -64,7 +64,7 @@ public class MapController {
                     HttpStatus.BAD_REQUEST);
         }
 
-        return RestResponse.validEntity(true);
+        return RestResponse.validEntity(null);
     }
 
     @ApiIgnore
@@ -76,6 +76,6 @@ public class MapController {
                     HttpStatus.BAD_REQUEST);
         }
 
-        return RestResponse.validEntity(true);
+        return RestResponse.validEntity(null);
     }
 }

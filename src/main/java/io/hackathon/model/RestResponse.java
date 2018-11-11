@@ -15,7 +15,7 @@ public class RestResponse<T> {
     private String errorDetails;
     private T result;
 
-    public RestResponse(boolean isError, String errorDetails, T result) {
+    private RestResponse(boolean isError, String errorDetails, T result) {
         this.isError = isError;
         this.errorDetails = errorDetails;
         this.result = result;

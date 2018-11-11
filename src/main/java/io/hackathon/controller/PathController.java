@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
 
 /**
  * "default comment"
@@ -64,6 +65,7 @@ public class PathController {
             @RequestParam("startDeviceId") String startDeviceId,
             @RequestParam("destZoneId") int destZoneId,
             @RequestParam("destRoomId") int destRoomId) {
+        logger.warn("CALC PATH FOR START - " + startDeviceId + ", DEST - " + destZoneId + "_" + destRoomId);
         final DeferredResult<ResponseEntity<RestResponse<PathTO>>> response = new DeferredResult<>(1500L);
         pool.submit(() -> {
             Set<String> excluded = Collections.emptySet();
@@ -71,9 +73,11 @@ public class PathController {
                 try {
                     final Path path = pathManager.findPath(startDeviceId, destZoneId, destRoomId, excluded);
                     if (path.isEmpty() && excluded.isEmpty()) {
+                        logger.warn("PATH NOT FOUND");
                         response.setErrorResult(RestResponse.errorEntity("Path was not found", HttpStatus.NOT_FOUND));
                     } else if (path.isEmpty() && !excluded.isEmpty()) {
                         final String collisionMsg = "Path conflict detected, can not calculate path tight now";
+                        logger.warn(collisionMsg + ", " + excluded.toString());
                         response.setErrorResult(RestResponse.errorEntity(collisionMsg, HttpStatus.CONFLICT));
                     }
 
@@ -90,7 +94,7 @@ public class PathController {
 
                         notifyManager.notifyWithColor(devices, path.getPathId(), colorResponse.getColor());
 
-                        logger.warn("PATH FOUND - " + pathResponse.getPathId());
+                        logger.warn("PATH FOUND - " + pathResponse.getPathId() + ", DEVICES " + path.getDevices().toString());
                         response.setResult(RestResponse.validEntity(pathResponse));
                         break;
                     }
@@ -134,6 +138,23 @@ public class PathController {
     }
 
     @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Some paths found", response = PathTO.class),
+            @ApiResponse(code = 404, message = "None path was found", response = RestResponse.class),
+    })
+    @GetMapping("/path/remembered/all")
+    public List<PathTO> allMemorizedPaths() {
+        final List<Path> paths = pathManager.memorized();
+        return paths.stream()
+                .map(p -> new PathTO(p.isOptimal(),
+                        colorManager.memorized(p),
+                        p.getPathId(),
+                        p.getLength(),
+                        p.getDevices(),
+                        p.getDestDevice()))
+                .collect(Collectors.toList());
+    }
+
+    @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successful path", response = RestResponse.class),
             @ApiResponse(code = 404, message = "Path not found", response = RestResponse.class),
     })
@@ -149,6 +170,6 @@ public class PathController {
         colorManager.reset(path.getPathId(), new HashSet<>(path.getDevices()));
         notifyManager.notifyColorOff(devices, path.getPathId());
         logger.warn("DEVICES RESET SUCCESS : " + devices.toString());
-        return ResponseEntity.ok(RestResponse.valid(true));
+        return ResponseEntity.ok(RestResponse.valid(null));
     }
 }

@@ -22,7 +22,7 @@ public class PathTO {
 
     public PathTO(boolean isOptimal, Color color, String pathId, int length, List<String> devices, String destDevice) {
         this.isOptimal = isOptimal;
-        this.color = color.asRgb();
+        this.color = (color != null) ? color.asRgb() : "";
         this.pathId = pathId;
         this.length = length;
         this.devices = devices;

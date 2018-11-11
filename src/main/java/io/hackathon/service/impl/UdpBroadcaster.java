@@ -40,7 +40,7 @@ public class UdpBroadcaster {
             logger.warn("BROADCAST TO IPs - " + sendedToDevices.toString());
             return sendedToDevices;
         } catch (Exception e) {
-            logger.error("SOCKET ERROR - " + e.getLocalizedMessage());
+            logger.warn("SOCKET ERROR - " + e.getLocalizedMessage());
             return Collections.emptyList();
         }
     }
@@ -61,8 +61,8 @@ public class UdpBroadcaster {
             socket.send(packet);
             socket.close();
         } catch (IOException e) {
-            logger.error("SEND ERROR WITH " + e.getLocalizedMessage());
-            logger.error("SEND ERROR ID - " + broadcastMessage
+            logger.warn("SEND ERROR WITH " + e.getLocalizedMessage());
+            logger.warn("SEND ERROR ID - " + broadcastMessage
                     + " FOR IP " + ipAddress
                     + ", port " + port);
         }

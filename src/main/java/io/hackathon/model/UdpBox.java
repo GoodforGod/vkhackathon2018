@@ -23,6 +23,10 @@ public class UdpBox {
         return msg;
     }
 
+    public boolean isEmpty() {
+        return msg == null || msg.isEmpty();
+    }
+
     public LocalDateTime getTimestamp() {
         return timestamp;
     }

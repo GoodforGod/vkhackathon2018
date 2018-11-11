@@ -88,7 +88,7 @@ public class NotifyUdpService implements INotifyService {
         }
 
         public static String buildLow(String pathId) {
-            return build(";" + convertPathId(pathId) + "\n", LOW);
+            return build(";" + convertPathId(pathId), LOW);
         }
 
         private static String build(String message, Command command) {
@@ -97,15 +97,12 @@ public class NotifyUdpService implements INotifyService {
     }
 
     /**
-     * Device -> SendColorMsg Timestamp
+     * Device -> (Path Id -> SendColorMsg Timestamp)
      */
     private final ConcurrentMap<String, Map<String, UdpBox>> devicePingAwaitMap = new ConcurrentHashMap<>();
 
-    private final Executor pingExecutor = Executors.newSingleThreadExecutor();
     private final Executor listenerExecutor = Executors.newSingleThreadExecutor();
-
     private final UdpBroadcaster broadcaster = new UdpBroadcaster();
-
     private final AtomicBoolean isActive = new AtomicBoolean(true);
 
     @Autowired
@@ -122,32 +119,24 @@ public class NotifyUdpService implements INotifyService {
         this.listenerExecutor.execute(createListenerRunner());
     }
 
-    public void changeActiveStatus(boolean status) {
-        this.isActive.set(status);
-    }
-
     public void notifyWithColor(final List<Device> devices,
                                 final String pathId,
                                 final Color color) {
-        this.pingExecutor.execute(() -> {
-            final String msg = Command.buildHigh(pathId, color);
-            this.broadcaster.broadcast(devices, msg)
-                    .forEach(d -> {
-                        List<String> ips = devices.stream().map(Device::getLastKnownIp).collect(Collectors.toList());
-                        Map<String, UdpBox> map = devicePingAwaitMap.computeIfAbsent(d.getId(),
-                                (k) -> new ConcurrentHashMap<>());
-                        map.put(pathId, new UdpBox(msg));
-                        devicePingAwaitMap.put(d.getId(), map);
-                    });
-        });
+        final String msg = Command.buildHigh(pathId, color);
+        notify(devices, pathId, msg);
     }
 
     public void notifyColorOff(final List<Device> devices,
                                final String pathId) {
         final String msg = Command.buildLow(pathId);
+        notify(devices, pathId, msg);
+    }
+
+    private void notify(final List<Device> devices,
+                        final String pathId,
+                        final String msg) {
         this.broadcaster.broadcast(devices, msg)
                 .forEach(d -> {
-                    List<String> ips = devices.stream().map(Device::getLastKnownIp).collect(Collectors.toList());
                     Map<String, UdpBox> map = devicePingAwaitMap.computeIfAbsent(d.getId(),
                             (k) -> new ConcurrentHashMap<>());
                     map.put(pathId, new UdpBox(msg));
@@ -163,56 +152,53 @@ public class NotifyUdpService implements INotifyService {
                     logger.warn("IS ACTIVE - " + isActive.get() + ", SERVER PORT " + serverListenerPort);
                     while (isActive.get()) {
                         final DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                        logger.warn("RECEIVING...");
                         socket.receive(packet);
                         final String received = new String(packet.getData(), 0, packet.getLength());
+                        if (received.isEmpty())
+                            continue;
+
                         logger.warn("RECEIVED " + received);
-                        final String[] splitAlive = received.split(";");
-                        if (splitAlive.length < 3)
-                            continue;
-
-                        final String deviceId = splitAlive[2];
-                        final String response = notifyManager.getResponse(deviceId,
-                                packet.getAddress().getHostAddress(),
-                                packet.getPort());
-
-                        if (response == null || response.isEmpty())
-                            continue;
-
-                        logger.warn("RESPONDING WITH " + response);
-                        final byte[] bytes = response.getBytes();
-                        final DatagramPacket responsePacket = new DatagramPacket(bytes,
-                                bytes.length,
-                                packet.getSocketAddress());
-
-                        socket.send(responsePacket);
-                        processReply(received, response);
+                        final DatagramPacket response = processRequest(received, packet);
+                        if (response != null)
+                            socket.send(response);
                     }
                 }
             } catch (IOException e) {
-                logger.error(e.getLocalizedMessage());
+                logger.warn(e.getLocalizedMessage());
             }
         };
     }
 
-    private void processReply(String received, String response) {
+    private DatagramPacket processRequest(String received, DatagramPacket packet) {
         final String[] splitRetry = received.split(";");
+        if (splitRetry.length < 3)
+            return null;
+
         final String pathId = splitRetry[1];
         final String deviceId = splitRetry[2];
+        final String response = notifyManager.getResponse(deviceId,
+                packet.getAddress().getHostAddress(),
+                packet.getPort());
 
+        final boolean haveResponse = (response != null && !response.isEmpty());
         final Map<String, UdpBox> retryPolicyMap = this.devicePingAwaitMap.computeIfAbsent(deviceId,
                 (k) -> new ConcurrentHashMap<>());
 
         switch (received.charAt(0)) {
-            case 'A':
-                retryPolicyMap.put(pathId, new UdpBox(response));
-                break;
             case 'H':
             case 'L':
-                retryPolicyMap.remove(splitRetry[1]);
-                break;
-            default:
+                retryPolicyMap.remove(pathId);
+                this.devicePingAwaitMap.put(deviceId, retryPolicyMap);
         }
+
+        if (!haveResponse)
+            return null;
+
+        logger.warn("RESPONDING : " + response);
+        retryPolicyMap.put(pathId, new UdpBox(response));
+        this.devicePingAwaitMap.put(deviceId, retryPolicyMap);
+        final byte[] bytes = response.getBytes();
+        return new DatagramPacket(bytes, bytes.length, packet.getSocketAddress());
     }
 
     /**
@@ -225,22 +211,24 @@ public class NotifyUdpService implements INotifyService {
     }
 
     @Scheduled(cron = "*/3 * * * * *")
-    public void pingRetry() {
+    public void retryPolicySchedule() {
         final LocalDateTime now = LocalDateTime.now();
-        // Device -> MSG
+        // Device -> MSGs
         final Map<String, List<String>> notifyDevices = new HashMap<>();
         for (Map.Entry<String, Map<String, UdpBox>> entry : devicePingAwaitMap.entrySet()) {
             final List<String> msg = entry.getValue().entrySet().stream()
+                    .filter(e -> !e.getValue().isEmpty())
                     .filter(e -> noAnswer(entry.getKey(), e.getValue().getTimestamp(), now))
                     .map(e -> e.getValue().getMsg())
                     .collect(Collectors.toList());
 
             devicePingAwaitMap.clear();
-            notifyDevices.put(entry.getKey(), msg);
+            if (!msg.isEmpty())
+                notifyDevices.put(entry.getKey(), msg);
         }
 
         notifyDevices.forEach((k, messages) -> {
-            logger.warn("RETRY FOR DEVICE - " + k + ", MSG - " + messages);
+            logger.warn("RETRY FOR DEVICE - " + k + ", MSG - " + messages.toString());
             deviceStorage.find(k).ifPresent(d -> {
                 final List<Device> dev = Collections.singletonList(d);
                 messages.forEach(msg -> broadcaster.broadcast(dev, msg));
