@@ -239,11 +239,11 @@ public class NotifyUdpService implements INotifyService {
             notifyDevices.put(entry.getKey(), msg);
         }
 
-        notifyDevices.forEach((k, v) -> {
-            logger.warn("RETRY FOR DEVICE - " + k + ", MSG - " + v);
+        notifyDevices.forEach((k, messages) -> {
+            logger.warn("RETRY FOR DEVICE - " + k + ", MSG - " + messages);
             deviceStorage.find(k).ifPresent(d -> {
                 final List<Device> dev = Collections.singletonList(d);
-                v.forEach(msg -> broadcaster.broadcast(dev, msg));
+                messages.forEach(msg -> broadcaster.broadcast(dev, msg));
             });
         });
     }

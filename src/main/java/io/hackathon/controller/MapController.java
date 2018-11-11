@@ -1,12 +1,15 @@
 package io.hackathon.controller;
 
-import io.hackathon.error.MapLoadException;
-import io.hackathon.error.MapPicException;
+import io.hackathon.model.RestResponse;
 import io.hackathon.model.dto.MapGraph;
 import io.hackathon.storage.impl.DeviceStorage;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,33 +36,46 @@ public class MapController {
     @Value("${IMG_PATH:C:\\Users\\GoodforGod\\IdeaProjects\\hermitage\\src\\resources\\images\\map.jpg}")
     private String imgPath;
 
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Map image loaded successfully", response = RestResponse.class),
+            @ApiResponse(code = 400, message = "Could not load map image", response = RestResponse.class),
+    })
     @GetMapping(value = "/map/pic")
-    public String getMapPic() {
+    public ResponseEntity<RestResponse<String>> getMapPic() {
         try {
             final byte[] fileContent = FileUtils.readFileToByteArray(new File(imgPath));
             final String encodedImg = Base64.getEncoder().encodeToString(fileContent);
-            return encodedImg;
+            return RestResponse.validEntity(encodedImg);
         } catch (IOException e) {
-            throw new MapPicException();
+            return RestResponse.errorEntity("Can't load map, contact administration",
+                    HttpStatus.BAD_REQUEST);
         }
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "Map loaded successfully", response = RestResponse.class),
+            @ApiResponse(code = 400, message = "Could not load map", response = RestResponse.class),
+    })
     @PostMapping(value = "/map/load")
-    public boolean loadMap(@RequestBody MapGraph map) {
-        List<String> invalidDevices = storage.loadMap(map);
-        if(!invalidDevices.isEmpty())
-            throw new MapLoadException(invalidDevices);
+    public ResponseEntity<RestResponse<Boolean>> loadMap(@RequestBody MapGraph map) {
+        final List<String> invalidDevices = storage.loadMap(map);
+        if(!invalidDevices.isEmpty()) {
+            return RestResponse.errorEntity("Invalid nodes found, such as:" + invalidDevices.toString(),
+                    HttpStatus.BAD_REQUEST);
+        }
 
-        return true;
+        return RestResponse.validEntity(true);
     }
 
     @ApiIgnore
     @GetMapping(value = "/map/default")
-    public boolean loadDefaultMap() {
-        List<String> invalidDevices = storage.loadDefaultMap();
-        if(!invalidDevices.isEmpty())
-            throw new MapLoadException(invalidDevices);
+    public ResponseEntity<RestResponse<Boolean>> loadDefaultMap() {
+        final List<String> invalidDevices = storage.loadDefaultMap();
+        if(!invalidDevices.isEmpty()) {
+            return RestResponse.errorEntity("Invalid nodes found, such as:" + invalidDevices.toString(),
+                    HttpStatus.BAD_REQUEST);
+        }
 
-        return true;
+        return RestResponse.validEntity(true);
     }
 }
