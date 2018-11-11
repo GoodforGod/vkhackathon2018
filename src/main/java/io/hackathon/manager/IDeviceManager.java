@@ -8,4 +8,7 @@ package io.hackathon.manager;
  */
 public interface IDeviceManager {
 
+    boolean alive(String deviceId, String ipAddress, int port);
+
+    boolean dead(String deviceId);
 }

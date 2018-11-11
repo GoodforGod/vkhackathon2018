@@ -63,19 +63,20 @@ public class NotifyUdpService implements INotifyService {
 
         private static String supplyWithZeros(String str, int max) {
             StringBuilder added = new StringBuilder();
-            for (int i = 0; i < max - str.length(); i++) {
+            String replace = str.replace("-", "0");
+            for (int i = 0; i < max - replace.length(); i++) {
                 added.append("0");
             }
 
-            return added.toString() + str;
+            return added.toString() + replace;
         }
 
         private static String convertPathId(String pathId) {
             String[] split = pathId.split("_");
-            StringBuilder builder  = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
             for (int i = 0; i < split.length; i++) {
                 if (i == 2)
-                    builder.append(supplyWithZeros(split[i], 8));
+                    builder.append(supplyWithZeros(split[i], 11));
                 else
                     builder.append(supplyWithZeros(split[i], 7)).append("_");
             }
@@ -83,11 +84,11 @@ public class NotifyUdpService implements INotifyService {
         }
 
         public static String buildHigh(String pathId, Color color) {
-            return build(";" + convertPathId(pathId) + ";" + color.asRgb() + ";", HIGH);
+            return build(";" + convertPathId(pathId) + ";" + color.asRgb() + "\n", HIGH);
         }
 
         public static String buildLow(String pathId) {
-            return build(";" + convertPathId(pathId), LOW);
+            return build(";" + convertPathId(pathId) + "\n", LOW);
         }
 
         private static String build(String message, Command command) {
@@ -133,7 +134,6 @@ public class NotifyUdpService implements INotifyService {
             this.broadcaster.broadcast(devices, msg)
                     .forEach(d -> {
                         List<String> ips = devices.stream().map(Device::getLastKnownIp).collect(Collectors.toList());
-                        logger.warn("RETRY REMEMBER COLOR ON FOR - " + ips + ", WITH MSG - " + msg);
                         Map<String, UdpBox> map = devicePingAwaitMap.computeIfAbsent(d.getId(),
                                 (k) -> new ConcurrentHashMap<>());
                         map.put(pathId, new UdpBox(msg));
@@ -148,7 +148,6 @@ public class NotifyUdpService implements INotifyService {
         this.broadcaster.broadcast(devices, msg)
                 .forEach(d -> {
                     List<String> ips = devices.stream().map(Device::getLastKnownIp).collect(Collectors.toList());
-                    logger.warn("RETRY REMEMBER COLOR OFF FOR - " + ips + ", WITH MSG - " + msg);
                     Map<String, UdpBox> map = devicePingAwaitMap.computeIfAbsent(d.getId(),
                             (k) -> new ConcurrentHashMap<>());
                     map.put(pathId, new UdpBox(msg));
@@ -168,13 +167,12 @@ public class NotifyUdpService implements INotifyService {
                         socket.receive(packet);
                         final String received = new String(packet.getData(), 0, packet.getLength());
                         logger.warn("RECEIVED " + received);
-                        String[] splitAlive = received.split(";");
+                        final String[] splitAlive = received.split(";");
                         if (splitAlive.length < 3)
                             continue;
 
-                        final String id = splitAlive[2].trim();
-
-                        final String response = notifyManager.getResponse(id,
+                        final String deviceId = splitAlive[2];
+                        final String response = notifyManager.getResponse(deviceId,
                                 packet.getAddress().getHostAddress(),
                                 packet.getPort());
 
@@ -182,17 +180,13 @@ public class NotifyUdpService implements INotifyService {
                             continue;
 
                         logger.warn("RESPONDING WITH " + response);
-
                         final byte[] bytes = response.getBytes();
                         final DatagramPacket responsePacket = new DatagramPacket(bytes,
                                 bytes.length,
                                 packet.getSocketAddress());
 
                         socket.send(responsePacket);
-                        if (received.isEmpty())
-                            continue;
-
-                        //processReply(received, packet.getAddress().getHostAddress(), packet.getPort());
+                        processReply(received, response);
                     }
                 }
             } catch (IOException e) {
@@ -201,23 +195,21 @@ public class NotifyUdpService implements INotifyService {
         };
     }
 
-    private void processReply(String received, String ipAddress, int port) {
+    private void processReply(String received, String response) {
+        final String[] splitRetry = received.split(";");
+        final String pathId = splitRetry[1];
+        final String deviceId = splitRetry[2];
+
+        final Map<String, UdpBox> retryPolicyMap = this.devicePingAwaitMap.computeIfAbsent(deviceId,
+                (k) -> new ConcurrentHashMap<>());
+
         switch (received.charAt(0)) {
             case 'A':
-                String[] splitAlive = received.split(";");
-                if (splitAlive.length < 3)
-                    break;
-
-                deviceManager.alive(splitAlive[2].trim(), ipAddress, port);
+                retryPolicyMap.put(pathId, new UdpBox(response));
                 break;
             case 'H':
             case 'L':
-                String[] splitRetry = received.split(";");
-                if (splitRetry.length < 3)
-                    break;
-
-                Map<String, UdpBox> map = this.devicePingAwaitMap.get(splitRetry[2]);
-                map.remove(splitRetry[1]);
+                retryPolicyMap.remove(splitRetry[1]);
                 break;
             default:
         }

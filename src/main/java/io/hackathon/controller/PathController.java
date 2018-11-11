@@ -1,9 +1,11 @@
 package io.hackathon.controller;
 
 import io.hackathon.error.PathCantCalcException;
+import io.hackathon.error.PathException;
 import io.hackathon.manager.impl.ColorManager;
 import io.hackathon.manager.impl.NotifyHttpManager;
 import io.hackathon.manager.impl.PathManager;
+import io.hackathon.model.Color;
 import io.hackathon.model.ColorResponse;
 import io.hackathon.model.Path;
 import io.hackathon.model.dao.Device;
@@ -50,9 +52,7 @@ public class PathController {
 
 
     private final Logger logger = LoggerFactory.getLogger(PathController.class);
-
     private final ForkJoinPool pool = ForkJoinPool.commonPool();
-
 
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "Successful path", response = PathTO.class)
@@ -98,6 +98,22 @@ public class PathController {
                                 .body("Request timeout occurred.")));
 
         return response;
+    }
+
+    @GetMapping("/path/remembered")
+    public PathTO memorizedPath(@RequestParam("pathId") String pathId) {
+        final Path path = pathManager.memorized(pathId);
+        if (path == null)
+            throw new PathException("Dont remember such path");
+
+        final Color color = colorManager.memorized(path);
+
+        return new PathTO(path.isOptimal(),
+                color,
+                path.getPathId(),
+                path.getLength(),
+                path.getDevices(),
+                path.getDestDevice());
     }
 
     @GetMapping("/path/reset")

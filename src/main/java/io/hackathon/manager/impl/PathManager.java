@@ -2,6 +2,7 @@ package io.hackathon.manager.impl;
 
 import io.hackathon.error.PathException;
 import io.hackathon.model.Path;
+import io.hackathon.model.PathBox;
 import io.hackathon.model.dao.Device;
 import io.hackathon.storage.impl.DeviceStorage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,13 +24,16 @@ public class PathManager {
     @Autowired
     private DeviceStorage storage;
 
-    private final Map<String, Path> memorizedOptimalPaths = new ConcurrentHashMap<>();
-    private final Map<String, Path> memorizedPaths = new ConcurrentHashMap<>();
+    private final Map<String, PathBox> memorizedOptimalPaths = new ConcurrentHashMap<>();
+    private final Map<String, PathBox> memorizedPaths = new ConcurrentHashMap<>();
 
     private final Comparator<Path> pathComparator = Comparator.comparingInt(p -> p.getDevices().size());
 
     public Path memorized(String pathId) {
-        return memorizedOptimalPaths.getOrDefault(pathId, memorizedPaths.get(pathId));
+        PathBox box = memorizedOptimalPaths.getOrDefault(pathId, memorizedPaths.get(pathId));
+        return (box == null)
+                ? null
+                : box.getPath();
     }
 
     public Path findPath(String startDeviceId, int zoneId, int roomId) {
@@ -56,8 +60,9 @@ public class PathManager {
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList()))
                 .flatMap(List::stream)
-                .filter(e -> !e.isEmpty())
+                .filter(e -> !e.getPath().isEmpty())
                 .findAny()
+                .map(PathBox::getPath)
                 .orElse(null);
 
         // Path already memorized
@@ -78,9 +83,9 @@ public class PathManager {
 
         if (!path.isEmpty()) {
             if (path.isOptimal()) {
-                this.memorizedOptimalPaths.put(path.getPathId(), path);
+                this.memorizedOptimalPaths.put(path.getPathId(), new PathBox(path));
             } else {
-                this.memorizedPaths.put(path.getPathId(), path);
+                this.memorizedPaths.put(path.getPathId(), new PathBox(path));
             }
         }
 

@@ -1,5 +1,10 @@
 package io.hackathon.manager;
 
+import io.hackathon.model.ColorResponse;
+import io.hackathon.model.Path;
+
+import java.util.Set;
+
 /**
  * "default comment"
  *
@@ -8,4 +13,7 @@ package io.hackathon.manager;
  */
 public interface IColorManager {
 
+    ColorResponse assign(final Path path);
+
+    void reset(String pathId, Set<String> devices);
 }

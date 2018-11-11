@@ -30,13 +30,9 @@ public class ColorManager {
 
     public ColorResponse assign(final Path path) {
         final Set<String> devices = new HashSet<>(path.getDevices());
-        final Color color = colorBoxMap.entrySet().stream()
-                .filter(e -> e.getValue().containsPath(path.getPathId()))
-                .findFirst()
-                .map(e -> e.getValue().getColor(path.getPathId()))
-                .orElse(null);
+        final Color color = memorized(path);
 
-        if(color != null)
+        if (color != null)
             return ColorResponse.valid(color);
 
         final Set<Color> colorsOccupied = colorBoxMap.entrySet().stream()
@@ -67,12 +63,18 @@ public class ColorManager {
         return ColorResponse.valid(availableColor);
     }
 
+    public Color memorized(final Path path) {
+        return colorBoxMap.entrySet().stream()
+                .filter(e -> e.getValue().containsPath(path.getPathId()))
+                .findFirst()
+                .map(e -> e.getValue().getColor(path.getPathId()))
+                .orElse(null);
+    }
+
     public void reset(String pathId, Set<String> devices) {
+        logger.warn("RESET COLOR FOR PATH - " + pathId);
         this.colorBoxMap.entrySet().stream()
                 .filter(e -> devices.contains(e.getKey()))
-                .forEach(e -> {
-                    logger.warn("RESET COLOR FOR PATH - " + pathId);
-                    e.getValue().reset(pathId);
-                });
+                .forEach(e -> e.getValue().reset(pathId));
     }
 }
